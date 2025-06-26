@@ -17,12 +17,11 @@ void ConstantValueStage::OnInit() {
 void ConstantValueStage::Process() {
     auto param = std::make_unique<TParameter<double>>(productName_.c_str(), value_);
 
-    getDataProductManager()->withProducts([&](auto& products) {
-        auto pdp = std::make_unique<PipelineDataProduct>();
-        pdp->setName(productName_);
-        pdp->setObject(std::move(param));
-        products[productName_] = std::move(pdp);
-    });
+    auto pdp = std::make_unique<PipelineDataProduct>();
+    pdp->setName(productName_);
+    pdp->setObject(std::move(param));
+
+    getDataProductManager()->addOrUpdate(productName_, std::move(pdp));
 
     spdlog::debug("[{}] Produced constant value {} for '{}'", Name(), value_, productName_);
 }
