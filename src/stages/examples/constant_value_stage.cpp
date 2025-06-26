@@ -20,6 +20,8 @@ void ConstantValueStage::Process() {
     auto pdp = std::make_unique<PipelineDataProduct>();
     pdp->setName(productName_);
     pdp->setObject(std::move(param));
+    pdp->addTag("constant_value_data");
+    pdp->addTag("built_by_constant_value_generator");
 
     getDataProductManager()->addOrUpdate(productName_, std::move(pdp));
 
