@@ -34,6 +34,7 @@ if(spdlog_ADDED)
   target_include_directories(spdlog_header_only INTERFACE
     $<BUILD_INTERFACE:${spdlog_SOURCE_DIR}/include>
   )
+  add_library(spdlog::spdlog ALIAS spdlog_header_only)
 endif()
 
 # nlohmann_json (header-only)
@@ -49,6 +50,7 @@ if(nlohmann_json_ADDED)
   target_include_directories(nlohmann_json_header_only INTERFACE
     $<BUILD_INTERFACE:${nlohmann_json_SOURCE_DIR}/include>
   )
+  add_library(nlohmann_json::nlohmann_json ALIAS nlohmann_json_header_only)
 endif()
 
 # Required system packages
