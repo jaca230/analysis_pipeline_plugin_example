@@ -6,6 +6,14 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# Suppress false-positive GCC warnings when top-level
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    add_compile_options(-Wno-stringop-overflow)
+  endif()
+endif()
+
+
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
