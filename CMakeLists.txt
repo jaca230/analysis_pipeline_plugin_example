@@ -2,29 +2,30 @@ cmake_minimum_required(VERSION 3.14)
 
 project(example_pipeline_plugin VERSION 1.0 LANGUAGES CXX)
 
+# ----------------------- Compiler Settings ------------------------
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-# Suppress false-positive GCC warnings when top-level
+# Suppress false-positive GCC warnings when this is the top-level project
 if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     add_compile_options(-Wno-stringop-overflow)
   endif()
 endif()
 
-
+# ----------------------- Includes and Utilities -------------------
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
-# --------------------- CPM Setup ---------------------
+# ----------------------- CPM (Dependency Management) --------------
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/CPM.cmake)
 
-# Use externally-defined versions if set, else fallback
+# Use externally defined versions or fall back to defaults
 set(CPM_SPDLOG_VERSION "1.13.0" CACHE STRING "spdlog version")
 set(CPM_NLOHMANN_JSON_VERSION "3.11.3" CACHE STRING "nlohmann_json version")
 
-# --------------------- spdlog ---------------------
+# Add spdlog dependency (header-only)
 CPMAddPackage(
   NAME spdlog
   GITHUB_REPOSITORY gabime/spdlog
@@ -35,7 +36,6 @@ CPMAddPackage(
     "SPDLOG_FMT_EXTERNAL OFF"
   DOWNLOAD_ONLY YES
 )
-
 if(spdlog_ADDED)
   add_library(spdlog_header_only INTERFACE)
   target_include_directories(spdlog_header_only INTERFACE
@@ -45,14 +45,13 @@ if(spdlog_ADDED)
   add_library(spdlog::spdlog ALIAS spdlog_header_only)
 endif()
 
-# --------------------- nlohmann_json ---------------------
+# Add nlohmann_json dependency (header-only)
 CPMAddPackage(
   NAME nlohmann_json
   GITHUB_REPOSITORY nlohmann/json
   VERSION ${CPM_NLOHMANN_JSON_VERSION}
   DOWNLOAD_ONLY YES
 )
-
 if(nlohmann_json_ADDED)
   add_library(nlohmann_json_header_only INTERFACE)
   target_include_directories(nlohmann_json_header_only INTERFACE
@@ -62,18 +61,17 @@ if(nlohmann_json_ADDED)
   add_library(nlohmann_json::nlohmann_json ALIAS nlohmann_json_header_only)
 endif()
 
-# Required system packages
+# ----------------------- Required Packages ------------------------
 find_package(analysis_pipeline_core REQUIRED)
 find_package(ROOT REQUIRED COMPONENTS Core RIO)
 include(${ROOT_USE_FILE})
 
-# Source files
+# ----------------------- Source Files -----------------------------
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS src/*.cpp)
 
-# Shared library
+# ----------------------- Library Target ---------------------------
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
 
-# Includes and linking
 target_include_directories(${PROJECT_NAME}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -88,7 +86,7 @@ target_link_libraries(${PROJECT_NAME}
     ROOT::Core ROOT::RIO
 )
 
-# Helper function to gather include dirs from targets for ROOT dictionary
+# ----------------------- ROOT Dictionary Helper --------------------
 function(append_target_includes_to_root_dict target_name)
   get_target_property(INCLUDE_DIRS ${target_name} INTERFACE_INCLUDE_DIRECTORIES)
   if(INCLUDE_DIRS AND NOT INCLUDE_DIRS STREQUAL "${target_name}_NOTFOUND")
@@ -98,7 +96,7 @@ function(append_target_includes_to_root_dict target_name)
         if(EXISTS "${actual}")
           list(APPEND ROOT_DICTIONARY_INCLUDE_OPTIONS "-I${actual}")
         endif()
-      elseif(NOT dir MATCHES "^\\$")  # Skip generator expressions
+      elseif(NOT dir MATCHES "^\\$")
         if(EXISTS "${dir}")
           list(APPEND ROOT_DICTIONARY_INCLUDE_OPTIONS "-I${dir}")
         endif()
@@ -108,35 +106,65 @@ function(append_target_includes_to_root_dict target_name)
   set(ROOT_DICTIONARY_INCLUDE_OPTIONS ${ROOT_DICTIONARY_INCLUDE_OPTIONS} PARENT_SCOPE)
 endfunction()
 
-# ROOT Dictionary
-set(ROOT_LINKDEF ${CMAKE_CURRENT_SOURCE_DIR}/include/LinkDef.h)
+# ----------------------- Detect Plugin Root Directory --------------
+# Detect plugin root directory name (relative to include/analysis_pipeline)
+file(GLOB PLUGIN_ROOT_DIRS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}/include/analysis_pipeline
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/analysis_pipeline/*
+)
+
+set(PLUGIN_ROOTS "")
+foreach(dir IN LISTS PLUGIN_ROOT_DIRS)
+  if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/analysis_pipeline/${dir})
+    list(APPEND PLUGIN_ROOTS ${dir})
+  endif()
+endforeach()
+
+list(LENGTH PLUGIN_ROOTS plugin_root_count)
+if(plugin_root_count EQUAL 1)
+  list(GET PLUGIN_ROOTS 0 PLUGIN_ROOT_DIR)
+  message(STATUS "Detected plugin root directory: ${PLUGIN_ROOT_DIR}")
+else()
+  message(FATAL_ERROR
+    "Expected exactly one plugin root directory under include/analysis_pipeline/, "
+    "found ${plugin_root_count}: ${PLUGIN_ROOTS}. Please fix directory structure or specify plugin root explicitly."
+  )
+endif()
+
+# Define full plugin root path for convenience
+set(PLUGIN_ROOT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/include/analysis_pipeline/${PLUGIN_ROOT_DIR}")
+
+# ----------------------- ROOT Dictionary Generation ----------------
+set(ROOT_LINKDEF ${PLUGIN_ROOT_PATH}/LinkDef.h)
 set(ROOT_DICTIONARY_INCLUDE_OPTIONS "-I${CMAKE_CURRENT_SOURCE_DIR}/include")
 
-# Add includes from AnalysisPipelineStagesCore for dictionary
 append_target_includes_to_root_dict(analysis_pipeline_core::analysis_pipeline_core)
 
-# Gather all headers for dictionary
-file(GLOB_RECURSE STAGE_HEADERS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/include/stages/*.h)
-file(GLOB_RECURSE DATAPRODUCT_HEADERS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/include/data_products/*.h)
+file(GLOB_RECURSE STAGE_HEADERS CONFIGURE_DEPENDS
+  ${PLUGIN_ROOT_PATH}/stages/*.h
+)
+file(GLOB_RECURSE DATAPRODUCT_HEADERS CONFIGURE_DEPENDS
+  ${PLUGIN_ROOT_PATH}/data_products/*.h
+)
 
 set(ALL_DICT_HEADERS ${STAGE_HEADERS} ${DATAPRODUCT_HEADERS})
 list(FILTER ALL_DICT_HEADERS EXCLUDE REGEX "LinkDef\\.h$")
 
-# Generate ROOT dictionary
 ROOT_GENERATE_DICTIONARY(G__${PROJECT_NAME}
   ${ALL_DICT_HEADERS}
   LINKDEF ${ROOT_LINKDEF}
   OPTIONS ${ROOT_DICTIONARY_INCLUDE_OPTIONS} -Wno-inconsistent-missing-override
 )
 
-# Add the generated dictionary source to the library sources
+# Add generated dictionary source file to the target sources
 target_sources(${PROJECT_NAME} PRIVATE
   ${CMAKE_CURRENT_BINARY_DIR}/G__${PROJECT_NAME}.cxx
 )
 
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})  # for generated headers
+target_include_directories(${PROJECT_NAME} PRIVATE
+  ${CMAKE_CURRENT_BINARY_DIR}  # For generated ROOT headers
+)
 
-# Install rules (if top-level)
+# ----------------------- Install Rules (Top-level only) -----------
 if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   install(TARGETS ${PROJECT_NAME}
     EXPORT ${PROJECT_NAME}Targets
@@ -151,7 +179,7 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
   )
 
-  install(DIRECTORY include/
+  install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
   )
 

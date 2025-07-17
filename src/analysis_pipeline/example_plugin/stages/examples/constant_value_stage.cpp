@@ -1,4 +1,4 @@
-#include "stages/examples/constant_value_stage.h"
+#include "analysis_pipeline/example_plugin/stages/examples/constant_value_stage.h"
 
 #include <TParameter.h>
 #include <spdlog/spdlog.h>
