@@ -63,7 +63,7 @@ if(nlohmann_json_ADDED)
 endif()
 
 # Required system packages
-find_package(AnalysisPipelineStagesCore REQUIRED)
+find_package(analysis_pipeline_core REQUIRED)
 find_package(ROOT REQUIRED COMPONENTS Core RIO)
 include(${ROOT_USE_FILE})
 
@@ -82,7 +82,7 @@ target_include_directories(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
-    AnalysisPipelineStagesCore::analysis_pipeline_stages_core
+    analysis_pipeline_core::analysis_pipeline_core
     spdlog_header_only
     nlohmann_json_header_only
     ROOT::Core ROOT::RIO
@@ -113,7 +113,7 @@ set(ROOT_LINKDEF ${CMAKE_CURRENT_SOURCE_DIR}/include/LinkDef.h)
 set(ROOT_DICTIONARY_INCLUDE_OPTIONS "-I${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 # Add includes from AnalysisPipelineStagesCore for dictionary
-append_target_includes_to_root_dict(AnalysisPipelineStagesCore::analysis_pipeline_stages_core)
+append_target_includes_to_root_dict(analysis_pipeline_core::analysis_pipeline_core)
 
 # Gather all headers for dictionary
 file(GLOB_RECURSE STAGE_HEADERS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/include/stages/*.h)
