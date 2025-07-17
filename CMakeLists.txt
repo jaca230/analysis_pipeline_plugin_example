@@ -72,6 +72,8 @@ file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS src/*.cpp)
 # ----------------------- Library Target ---------------------------
 add_library(${PROJECT_NAME} SHARED ${SOURCES})
 
+add_library(analysis_pipeline::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
+
 target_include_directories(${PROJECT_NAME}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
