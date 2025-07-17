@@ -1,7 +1,7 @@
 #ifndef EXAMPLE_PIPELINE_PLUGIN_CONSTANT_VALUE_STAGE_H
 #define EXAMPLE_PIPELINE_PLUGIN_CONSTANT_VALUE_STAGE_H
 
-#include "stages/base_stage.h"
+#include "analysis_pipeline_stages_core/stages/base_stage.h"
 
 class ConstantValueStage : public BaseStage {
 public:
