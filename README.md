@@ -4,7 +4,7 @@
 [![License](https://img.shields.io/badge/license-MIT-green)]()
 
 
-This is an example plugin demonstrating how to create a custom stage for the **[Analysis Pipeline](https://github.com/jaca230/analysis_pipeline)** framework.
+This is an example plugin demonstrating how to create a custom stage for the **[Analysis Pipeline](https://github.com/jaca230/analysis_pipeline)** framewor, particularly it builds off the [analysis\_pipeline\_core](https://github.com/jaca230/analysis_pipeline_core).
 
 ## Overview
 
