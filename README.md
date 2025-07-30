@@ -68,10 +68,8 @@ To clean build artifacts before rebuilding, use the cleanup script:
 
 ## Dependencies
 
-* [analysis\_pipeline\_stages](https://github.com/jaca230/analysis_pipeline_stages)
+* [analysis\_pipeline\_core](https://github.com/jaca230/analysis_pipeline_core)
 * [ROOT](https://root.cern/) (Core, RIO components)  
-* [spdlog](https://github.com/gabime/spdlog)  
-* [nlohmann_json](https://github.com/nlohmann/json)  
 
 
 ## License
